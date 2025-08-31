@@ -1,73 +1,52 @@
 "use client";
-import React, { useState } from "react";
 
-type Msg = { role: "user" | "assistant"; content: string };
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-export default function Home() {
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
+export default function Page() {
+  const [msg, setMsg] = useState("");
+  const [out, setOut] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function onSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || busy) return;
-
-    const next = [...messages, { role: "user", content: input }] as Msg[];
-    setMessages(next);
-    setInput("");
+    if (!msg || busy) return;
     setBusy(true);
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: "丁寧に簡潔に日本語で答える" },
-            ...next,
-          ],
+          messages: [{ role: "user", content: msg }]
         }),
       });
       const data = await res.json();
-      setMessages((m) => [...m, { role: "assistant", content: data.text ?? "" }]);
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "エラーが発生しました" }]);
+      setOut(data.text ?? "(no text)");
+    } catch (err: any) {
+      setOut(err?.message ?? "unknown error");
     } finally {
       setBusy(false);
+      setMsg("");
     }
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "32px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>チャット</h1>
-
-      <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
-        {messages.map((m, i) => (
-          <div key={i}
-            style={{
-              whiteSpace: "pre-wrap",
-              background: m.role === "user" ? "#eef6ff" : "#f5f5f5",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              padding: 12,
-              justifySelf: m.role === "user" ? "end" : "start",
-              maxWidth: "85%",
-            }}>
-            <b style={{ fontSize: 12, opacity: 0.6 }}>{m.role === "user" ? "You" : "AI"}</b>
-            <div>{m.content}</div>
-          </div>
-        ))}
-      </div>
-
-      <form onSubmit={onSend} style={{ display: "flex", gap: 8 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+    <main className="max-w-xl mx-auto p-6">
+      <h1 className="text-2xl font-bold text-blue-600 mb-4">ミニチャット</h1>
+      <form onSubmit={onSend} className="flex gap-2">
+        <Input
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
           placeholder="メッセージを入力"
-          style={{ flex: 1, padding: 12, border: "1px solid #ccc", borderRadius: 8 }}
         />
-        <button disabled={busy} style={{ padding: "12px 16px", borderRadius: 8 }}>送信</button>
+        <Button type="submit" disabled={busy}>
+          {busy ? "送信中…" : "送信"}
+        </Button>
       </form>
+      <pre className="mt-4 whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded">
+        {out}
+      </pre>
     </main>
   );
 }
