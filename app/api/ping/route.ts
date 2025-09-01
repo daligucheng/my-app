@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
-export async function GET() {
+
+// GET /api/ping -> {"ok": true}
+export function GET() {
   return NextResponse.json({ ok: true });
 }
