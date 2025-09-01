@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import OpenAI from "openai";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -20,31 +19,42 @@ const SYSTEMS = {
 無駄のない手順書作成係。
 # ルール
 - 箇条書きで5〜7手順。各行は20字以内。
-- 数字付き 1. 2. 3. … の形式。`
+- 数字付き 1. 2. 3. … の形式。`,
 } as const;
 
-export async function POST(req: Request) {
-  try {
-    const { prompt = "", mode = "story" } = await req.json();
+type Mode = keyof typeof SYSTEMS;
 
-    const system =
-      SYSTEMS[(mode as keyof typeof SYSTEMS)] ?? SYSTEMS.story;
+type RequestBody = {
+  prompt?: string;
+  mode?: Mode;
+};
+
+export async function POST(req: Request): Promise<Response> {
+  try {
+    const { prompt = "", mode = "story" }: RequestBody = await req.json();
+
+    const system: string = SYSTEMS[mode] ?? SYSTEMS.story;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: mode === "steps" ? 0.2 : 0.7,
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: String(prompt) }
+        { role: "system" as const, content: system },
+        { role: "user" as const, content: String(prompt) },
       ],
     });
 
     const text = completion.choices?.[0]?.message?.content ?? "";
     return Response.json({ text });
-  } catch (e: any) {
-    return new Response(
-      JSON.stringify({ error: e?.message ?? "unknown error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+  } catch (e: unknown) {
+    const message =
+      e && typeof e === "object" && "message" in e
+        ? String((e as { message: unknown }).message)
+        : "unknown error";
+
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
