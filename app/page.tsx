@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function Page() {
   const [msg, setMsg] = useState("");
@@ -11,42 +9,31 @@ export default function Page() {
 
   async function onSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!msg || busy) return;
+    if (!msg.trim() || busy) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: msg }]
-        }),
-      });
+      const res = await fetch("/api/ping"); // まずは動作確認API
       const data = await res.json();
-      setOut(data.text ?? "(no text)");
-    } catch (err: any) {
-      setOut(err?.message ?? "unknown error");
+      setOut(JSON.stringify(data));
+    } catch (e) {
+      setOut("(error)");
     } finally {
       setBusy(false);
-      setMsg("");
     }
   }
 
   return (
-    <main className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-blue-600 mb-4">ミニチャット</h1>
-      <form onSubmit={onSend} className="flex gap-2">
-        <Input
+    <main>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>OpenAI ミニ実験</h1>
+      <form onSubmit={onSend} style={{ display: "flex", gap: 8 }}>
+        <input
           value={msg}
           onChange={(e) => setMsg(e.target.value)}
           placeholder="メッセージを入力"
         />
-        <Button type="submit" disabled={busy}>
-          {busy ? "送信中…" : "送信"}
-        </Button>
+        <button disabled={busy}>{busy ? "送信中…" : "送信"}</button>
       </form>
-      <pre className="mt-4 whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded">
-        {out}
-      </pre>
+      <pre style={{ marginTop: 12 }}>{out}</pre>
     </main>
   );
 }
