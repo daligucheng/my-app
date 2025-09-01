@@ -23,17 +23,12 @@ const SYSTEMS = {
 } as const;
 
 type Mode = keyof typeof SYSTEMS;
-
-type RequestBody = {
-  prompt?: string;
-  mode?: Mode;
-};
+type RequestBody = { prompt?: string; mode?: Mode };
 
 export async function POST(req: Request): Promise<Response> {
   try {
     const { prompt = "", mode = "story" }: RequestBody = await req.json();
-
-    const system: string = SYSTEMS[mode] ?? SYSTEMS.story;
+    const system = SYSTEMS[mode] ?? SYSTEMS.story;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -51,7 +46,6 @@ export async function POST(req: Request): Promise<Response> {
       e && typeof e === "object" && "message" in e
         ? String((e as { message: unknown }).message)
         : "unknown error";
-
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
